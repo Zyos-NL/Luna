@@ -1,0 +1,43 @@
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Environment files
+*.env
+.env
+!.env.example
+
+# AI model files (large binaries — store outside repo, bind-mount from ../lumi/models)
+models/
+
+# Generated images
+outputs/
+
+# Screenshots from CDP verification
+screenshots/
+
+# Python cache (ComfyUI custom nodes)
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CivitAI / HuggingFace / RunPod tokens (local, do not commit)
+.civitai-token
+.civitai-seen-ids.json
+.runpod-token
+.hf-token
+
+# Claude Code local settings (anchored memory + plans live here)
+.claude/settings.local.json
+.claude/.credentials*
+
+# Training assets (large, machine-specific)
+training/data/
+training/output/
+
+# Stray empty file from past redirect
+/null
