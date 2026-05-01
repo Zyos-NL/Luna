@@ -70,7 +70,7 @@ In volgorde van Fase-1 prio uit het plan:
 
 ### 2. Scripts (`scripts/`)
 - [ ] `scripts/download-models.mjs` — Fase-1 minimum (~22GB):
-  - `unet/flux1-dev-Q5_K_M.gguf` (city96/FLUX.1-dev-gguf op HuggingFace)
+  - `unet/flux1-dev-Q5_K_S.gguf` (city96/FLUX.1-dev-gguf op HuggingFace)
   - `clip/t5xxl_fp8_e4m3fn.safetensors` (comfyanonymous repo)
   - `clip/clip_l.safetensors`
   - `vae/ae.safetensors`
@@ -143,7 +143,7 @@ Kopiëren uit lumi en aanpassen. Baseline:
 
 - **ComfyUI port: 18190.** Lumi = 18188. **Niet** 18189 (lumi-swap bestaat niet meer).
 - **Models bind-mount uit `../lumi/models/`** — luna mag toevoegen, **nooit** overschrijven.
-- **Engine: Flux.1 dev GGUF Q5_K_M** via `city96/ComfyUI-GGUF`. Geen SDXL als daily driver.
+- **Engine: Flux.1 dev GGUF Q5_K_S** via `city96/ComfyUI-GGUF`. Geen SDXL als daily driver.
 - **Identity: PuLID-Flux v1.1**. Geen IPAdapter+InstantID stack.
 - **Skin-LoRA always-on** op weight 0.4–0.6 (kwaliteitsfloor).
 - **Character-LoRA training: cloud RunPod** (~$0.70/run). Lokale Flux-LoRA training niet doen.

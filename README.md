@@ -25,7 +25,7 @@ cd apps/web && npm install && npm start
 ```
 
 ## Stack
-- **Engine:** Flux.1 dev GGUF Q5_K_M (`city96/ComfyUI-GGUF`)
+- **Engine:** Flux.1 dev GGUF Q5_K_S (`city96/ComfyUI-GGUF`)
 - **Identity:** PuLID-Flux v1.1 (no training)
 - **Skin:** "Photorealistic Skin No Plastic" Flux-LoRA (always-on, weight 0.4–0.6)
 - **NSFW finetune:** Jib Mix Flux v12 SRPO

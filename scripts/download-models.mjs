@@ -158,11 +158,14 @@ const MODELS = [
   },
   {
     key: 'fluxQ5',
-    dest: 'unet/flux1-dev-Q5_K_M.gguf',
+    dest: 'unet/flux1-dev-Q5_K_S.gguf',
     sourceType: 'hf',
-    url: 'https://huggingface.co/city96/FLUX.1-dev-gguf/resolve/main/flux1-dev-Q5_K_M.gguf?download=true',
-    expectedSizeMB: 8400,
-    notes: 'Flux.1 dev quantized to Q5_K_M (~8.4 GB). Default Luna engine.',
+    // city96/FLUX.1-dev-gguf publiceert geen Q5_K_M variant — alleen Q5_K_S in de
+    // K-quant 5-bit familie. Q5_K_S is marginaal kleiner/sneller dan _M, geen
+    // merkbaar kwaliteitsverlies op RTX 4070 voor photoreal.
+    url: 'https://huggingface.co/city96/FLUX.1-dev-gguf/resolve/main/flux1-dev-Q5_K_S.gguf?download=true',
+    expectedSizeMB: 7900,
+    notes: 'Flux.1 dev quantized to Q5_K_S (~7.9 GB). Default Luna engine.',
   },
 ];
 

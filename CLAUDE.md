@@ -15,7 +15,7 @@ Sister project: [Lumi](../lumi/) — anime/semi-real generator. Lumi en Luna del
 ## Stack
 - **Frontend:** Angular 21 standalone, strict TypeScript, signals, Material 21 M3 dark.
 - **AI backend:** ComfyUI (Docker, NVIDIA CUDA) op poort **18190**.
-- **Engine:** Flux.1 dev GGUF Q5_K_M (`unet/flux1-dev-Q5_K_M.gguf`, ~8.4GB) via `city96/ComfyUI-GGUF`. SDXL alleen als pose-fallback.
+- **Engine:** Flux.1 dev GGUF Q5_K_S (`unet/flux1-dev-Q5_K_S.gguf`, ~7.9GB) via `city96/ComfyUI-GGUF`. SDXL alleen als pose-fallback. NB: city96 publiceert geen Q5_K_M voor Flux dev — Q5_K_S is de juiste K-quant 5-bit keuze.
 - **Identity-lock:** PuLID-Flux v0.9.1 weight via `lldacing/ComfyUI_PuLID_Flux_ll` (active Flux fork; `balazik/ComfyUI-PuLID-Flux-Enhanced` bestaat niet, `sipie800/...-Enhanced` is discontinued).
 - **T5 encoder:** `t5xxl_fp8_e4m3fn.safetensors` (FP8 safetensors). NIET Q5_K_M GGUF — combinatie met FP8/GGUF Flux UNet OOM-t op 12GB.
 - **Skin-detail:** "Photorealistic Skin No Plastic" Flux-LoRA always-on (weight 0.4–0.6).
@@ -33,7 +33,7 @@ Sister project: [Lumi](../lumi/) — anime/semi-real generator. Lumi en Luna del
 ## Hard rules (every agent must follow)
 1. **ComfyUI port: 18190.** Container: `luna-comfyui`. Nooit "fixen" naar 8188 (= Lumi).
 2. **Models bind-mount uit `../lumi/models/`** — luna mag toevoegen, **nooit overschrijven** van bestaande bestanden. Download-script doet `Test-Path` check.
-3. **Default engine: Flux.1 dev GGUF Q5_K_M.** SDXL alleen als pose-controlled-fallback.
+3. **Default engine: Flux.1 dev GGUF Q5_K_S.** SDXL alleen als pose-controlled-fallback.
 4. **Geen safety-rewrite checkpoints.** SDXL-base, vanilla Flux-schnell, SD3.5 geblokkeerd in de UI.
 5. **Character-id-lock.** Zodra een character een `identity.png` heeft, MOET elke generatie via `buildCharacterWorkflow()` gaan met PuLID-Flux. Plain txt2img zonder character is alleen "scene exploration" mode.
 6. **FaceDetailer verplicht** als laatste pass voor close-ups (face-bbox > 30% van frame).
@@ -109,4 +109,4 @@ Standaard loop: implement (frontend / backend / character-pipeline) → review �
 - Automatische dataset-scraping.
 
 ## Hardware
-RTX 4070 12GB, i7-13700K, 32GB RAM, 438GB+ vrij, CUDA 13.2, Docker met NVIDIA runtime, Node 24, Python 3.12. Flux.1 dev Q5_K_M = ~52s/1024px. Tier-2 (candy.ai-equivalent) haalbaar; Tier-3 (Flux BF16 / InfiniteYou / 24GB+) buiten scope.
+RTX 4070 12GB, i7-13700K, 32GB RAM, 438GB+ vrij, CUDA 13.2, Docker met NVIDIA runtime, Node 24, Python 3.12. Flux.1 dev Q5_K_S = ~52s/1024px. Tier-2 (candy.ai-equivalent) haalbaar; Tier-3 (Flux BF16 / InfiniteYou / 24GB+) buiten scope.

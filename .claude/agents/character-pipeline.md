@@ -42,7 +42,7 @@ Append user-input ná deze baseline. Nooit baseline weghalen.
 
 ## VRAM-budget (12GB)
 
-- Flux.1 dev Q5_K_M: ~6.5GB
+- Flux.1 dev Q5_K_S: ~6.5GB
 - + PuLID-Flux: +0.8GB tijdens diffusion (sequential face-extract piek +1.5GB, dan offload)
 - + Skin + Jib Mix LoRAs (rank-64): +0.4GB
 - + FaceDetailer: piek +1.8GB

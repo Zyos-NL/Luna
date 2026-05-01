@@ -52,7 +52,7 @@ install_node() {
 }
 
 # Order matters: dependencies first.
-#  1. ComfyUI-GGUF       → Flux GGUF loader (Q5_K_M is Luna's daily driver)
+#  1. ComfyUI-GGUF       → Flux GGUF loader (Q5_K_S is Luna's daily driver)
 #  2. PuLID_Flux_ll      → identity-lock (lldacing fork; vereist insightface + facexlib + facenet-pytorch)
 #  3. Impact-Pack        → FaceDetailer node (laatste pass voor close-ups)
 #  4. controlnet_aux     → DWPose preprocessor (SDXL pose-fallback)

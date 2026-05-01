@@ -7,7 +7,7 @@ Luna wordt een nieuwe lokale generatie-tool: **photorealistic persoon-generatie*
 → Luna = **realisme**, port **18190**, eigen ComfyUI-instance.
 
 **Hardware-realiteit (RTX 4070, 12GB VRAM, 32GB RAM, 438GB vrij, CUDA 13.2):**
-12GB haalt de **Tier-2 (candy.ai-equivalent)** stack — Flux.1 dev Q5_K_M GGUF + PuLID-Flux + skin-LoRA. Tier-3 (InfiniteYou / Flux BF16 / 24GB+) valt buiten bereik en is uit scope.
+12GB haalt de **Tier-2 (candy.ai-equivalent)** stack — Flux.1 dev Q5_K_S GGUF + PuLID-Flux + skin-LoRA. Tier-3 (InfiniteYou / Flux BF16 / 24GB+) valt buiten bereik en is uit scope.
 
 **Speed-realiteit:** 38–52s per 1024px Flux-gen op 4070. Acceptabel voor interactive UX, te traag voor batch >10/min — daar wijken we naar cloud uit.
 
@@ -22,9 +22,9 @@ Geen andere occurrences in lumi (`grep -i "lumi-swap|lumi_swap|18189|swap"` → 
 
 ## Top-niveau stack-keuzes
 
-**Generatie-engine:** Flux.1 dev GGUF Q5_K_M (~6.5GB) via `city96/ComfyUI-GGUF`. Niet SDXL.
+**Generatie-engine:** Flux.1 dev GGUF Q5_K_S (~6.5GB) via `city96/ComfyUI-GGUF`. Niet SDXL.
 - Flux is structureel beter dan SDXL op handen, lichaamsproporties, huid-subsurface
-- Q5_K_M is sweet spot op 12GB (2.6 s/it = ~52s/1024px). Q4_0 sneller (~38s) maar zichtbaar kwaliteitsverlies.
+- Q5_K_S is sweet spot op 12GB (2.6 s/it = ~52s/1024px). Q4_0 sneller (~38s) maar zichtbaar kwaliteitsverlies.
 - Q8 / fp8 past niet comfortabel naast PuLID + LoRAs op 12GB.
 
 **NSFW fine-tunes (Civitai, gebruikt via GGUF-loader):**
@@ -65,7 +65,7 @@ C:\Users\Clips\repos\luna\
 │       └── pose-controlled-sdxl.json # SDXL fallback voor pose-control (fase 5)
 ├── outputs/                    # eigen output-tree (niet delen met lumi)
 ├── scripts/
-│   ├── download-models.mjs     # Flux GGUF Q5_K_M, Jib Mix, Fluxed Up, PuLID-Flux,
+│   ├── download-models.mjs     # Flux GGUF Q5_K_S, Jib Mix, Fluxed Up, PuLID-Flux,
 │   │                             Skin LoRA, T5-encoder, CLIP-L, Flux Kontext FP8 weights,
 │   │                             TensorRT engine builder
 │   ├── build-tensorrt.mjs      # one-time TensorRT engine compile voor Flux Kontext
@@ -97,7 +97,7 @@ Comfy startup-flags: `--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 -
 
 | Node | Doel | Licentie |
 |---|---|---|
-| `city96/ComfyUI-GGUF` | Flux GGUF Q5_K_M loader + LoRA-merge | Apache 2.0 |
+| `city96/ComfyUI-GGUF` | Flux GGUF Q5_K_S loader + LoRA-merge | Apache 2.0 |
 | `lldacing/ComfyUI_PuLID_Flux_ll` (fallback: `balazik/ComfyUI-PuLID-Flux`) | identity-lock (no training) | Apache 2.0 |
 | `comfyanonymous/ComfyUI` core | Flux nodes (UNETLoader, DualCLIPLoader, etc.) | GPL-3.0 |
 | ComfyUI-FluxKontext (officiële node-pack) | Flux.1 Kontext FP8 + TensorRT engine | Apache 2.0 |
@@ -116,7 +116,7 @@ Comfy startup-flags: `--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 -
 
 | Bestand | Doel | Grootte |
 |---|---|---|
-| `unet/flux1-dev-Q5_K_M.gguf` | **primary Flux base** | ~8.4GB |
+| `unet/flux1-dev-Q5_K_S.gguf` | **primary Flux base** | ~8.4GB |
 | `clip/t5xxl_fp8_e4m3fn.safetensors` | T5-XXL text-encoder fp8 | ~5GB |
 | `clip/clip_l.safetensors` | CLIP-L | ~250MB |
 | `vae/ae.safetensors` | Flux VAE | ~335MB |
@@ -139,7 +139,7 @@ Gemeten benchmarks (RTX 4070-class, mei 2026 forums):
 
 | Component | VRAM in actieve gen |
 |---|---|
-| Flux.1 dev Q5_K_M | ~6.5GB |
+| Flux.1 dev Q5_K_S | ~6.5GB |
 | + T5-XXL fp8 (sequential load) | piek bij text-encode +3.5GB, dan offload |
 | + Skin LoRA + Jib Mix LoRA (rank-64) | +0.4GB |
 | + PuLID-Flux (sequential) | +1.5GB tijdens face-extract, +0.8GB tijdens diffusion |
@@ -170,7 +170,7 @@ Researcher/qa/reviewer/fixer ongewijzigd (alleen project-naam swap).
 ```
 1. ComfyUI port: 18190. Container: luna-comfyui. Nooit "fixen" naar 8188.
 2. Models bind-mount uit ../lumi/models/ — luna mag toevoegen, nooit overschrijven.
-3. Default engine: Flux.1 dev GGUF Q5_K_M. SDXL alleen als pose-fallback.
+3. Default engine: Flux.1 dev GGUF Q5_K_S. SDXL alleen als pose-fallback.
 4. Geen safety-rewrite checkpoints. SDXL-base, vanilla Flux-schnell, SD3.5 geblokkeerd.
 5. Character-id-lock: zodra een character een identity-photo heeft, MOET elke generatie via
    buildCharacterWorkflow() gaan met PuLID-Flux. Plain txt2img alleen in
@@ -281,7 +281,7 @@ Expliciet **niet**: video-generatie (Wan/CogVideo), voice/TTS, chat/LLM-interfac
 
 | Onderwerp | Eerste plan | Herziene plan | Reden |
 |---|---|---|---|
-| Base-engine | SDXL Juggernaut Ragnarok | **Flux.1 dev Q5_K_M GGUF** | Flux is structureel beter op anatomie/handen/skin; 12GB haalbaar via GGUF |
+| Base-engine | SDXL Juggernaut Ragnarok | **Flux.1 dev Q5_K_S GGUF** | Flux is structureel beter op anatomie/handen/skin; 12GB haalbaar via GGUF |
 | Identity-lock | IPAdapter FaceID + InstantID stacked | **PuLID-Flux v1.1** | Hogere fidelity, single-stack op Flux, geen training |
 | Skin-detail | impliciet via checkpoint | **expliciete Skin-LoRA always-on** | "Plastic skin" is de #1 verraad-tell; LoRA kost ~150MB en lost het op |
 | Image-edit | niet in v1 | **Flux Kontext FP8 + TensorRT in fase 3** | NVIDIA TensorRT past Kontext in 12GB RTX 40-serie |
