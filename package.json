@@ -1,0 +1,15 @@
+{
+  "name": "luna",
+  "private": true,
+  "type": "module",
+  "description": "Luna — local photoreal person generator (root utility scripts).",
+  "scripts": {
+    "download": "node scripts/download-models.mjs",
+    "verify-identity": "node scripts/verify-identity.mjs",
+    "verify-anatomy": "node scripts/verify-anatomy.mjs",
+    "screenshot": "node scripts/screenshot.mjs"
+  },
+  "devDependencies": {
+    "ws": "^8.18.0"
+  }
+}
