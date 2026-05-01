@@ -21,6 +21,8 @@ You are the **Luna character-pipeline agent**. Scope: alles dat character-id-loc
 - `scene-variation.json`: PuLID weight=0.6, start=0.0, end=0.5. Meer ruimte voor scene-prompt om door te komen.
 - LoRA + PuLID combo (Fase 4, met character-LoRA): LoRA strength=0.6, PuLID weight=0.45. LoRA pakt totale identity (lichaam, vibe), PuLID houdt face-lock.
 - KSampler default Flux: steps=20, cfg=3.5, sampler=euler, scheduler=simple. Flux is rectified flow — geen DPM++ nodig.
+- **PuLID-Flux node = `lldacing/ComfyUI_PuLID_Flux_ll`** (NIET balazik/...-Enhanced, NIET sipie800/...-Enhanced). Workflow JSON gebruikt class names: `ApplyPulidFlux`, `PulidFluxOptions`, `LoadInsightFace_PulidFlux`, `PulidFluxFaceDetector`, `FixPulidFluxPatch`. Plaats `FixPulidFluxPatch` ná elke PuLID-toepassing — voorkomt model-pollution na disconnect (lldacing-specifieke fix).
+- T5 encoder = `t5xxl_fp8_e4m3fn.safetensors`. NIET T5 Q5_K_M GGUF — OOM op 12GB i.c.m. FP8 Flux UNet.
 
 ## FaceDetailer always-on (close-ups)
 

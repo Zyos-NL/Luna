@@ -31,7 +31,7 @@ Geen andere occurrences in lumi (`grep -i "lumi-swap|lumi_swap|18189|swap"` → 
 - `Jib Mix Flux v12 SRPO` (Civitai 686814) — primary photoreal NSFW
 - `Fluxed Up v10` (Civitai 847101) — alt voor diverse aesthetic
 
-**Identity-lock:** **PuLID-Flux v1.1** (`balazik/ComfyUI-PuLID-Flux-Enhanced` of `cubiq/PuLID_ComfyUI`) — geen training nodig, inject-at-generation. Hoger ID-similarity dan IPAdapter+InstantID op Flux-modellen. ID Loss 0.225 vs InfiniteYou 0.209 (we gebruiken PuLID want InfiniteYou past niet in 12GB).
+**Identity-lock:** **PuLID-Flux v0.9.1 weight** via `lldacing/ComfyUI_PuLID_Flux_ll` (active Flux fork; fallback = `balazik/ComfyUI-PuLID-Flux` zonder Enhanced) — geen training nodig, inject-at-generation. Hoger ID-similarity dan IPAdapter+InstantID op Flux-modellen. ID Loss 0.225 vs InfiniteYou 0.209 (we gebruiken PuLID want InfiniteYou past niet in 12GB). NB: `cubiq/PuLID_ComfyUI` is SDXL-only, niet Flux. `sipie800/...-Enhanced` is door auteur gediscontinueerd.
 
 **Skin-detail booster:** `Photorealistic Skin No Plastic` Flux-LoRA (Civitai 1157318), strength 0.4–0.6. Lost het "AI-plastic" probleem op zonder pipeline-complexiteit.
 
@@ -98,7 +98,7 @@ Comfy startup-flags: `--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 -
 | Node | Doel | Licentie |
 |---|---|---|
 | `city96/ComfyUI-GGUF` | Flux GGUF Q5_K_M loader + LoRA-merge | Apache 2.0 |
-| `balazik/ComfyUI-PuLID-Flux-Enhanced` (of `cubiq/PuLID_ComfyUI`) | identity-lock (no training) | Apache 2.0 |
+| `lldacing/ComfyUI_PuLID_Flux_ll` (fallback: `balazik/ComfyUI-PuLID-Flux`) | identity-lock (no training) | Apache 2.0 |
 | `comfyanonymous/ComfyUI` core | Flux nodes (UNETLoader, DualCLIPLoader, etc.) | GPL-3.0 |
 | ComfyUI-FluxKontext (officiële node-pack) | Flux.1 Kontext FP8 + TensorRT engine | Apache 2.0 |
 | `ltdrdata/ComfyUI-Impact-Pack` | FaceDetailer | GPL-3.0 (flag licentie) |

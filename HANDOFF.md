@@ -61,7 +61,7 @@ In volgorde van Fase-1 prio uit het plan:
 - [ ] `infra/docker-compose.yml` — service `comfyui`, container `luna-comfyui`, port `18190:8188`, GPU passthrough, bind-mount `../../lumi/models:/root/ComfyUI/models`, named-volume `luna-comfyui-data:/root/ComfyUI/custom_nodes`, CLI args `--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 --use-pytorch-cross-attention --preview-method none`. Image: `yanwk/comfyui-boot:cu130-slim` (zelfde als lumi).
 - [ ] `infra/install-nodes.sh` — clone + pip install in `luna-comfyui` container:
   - `city96/ComfyUI-GGUF` (Flux GGUF loader)
-  - `balazik/ComfyUI-PuLID-Flux-Enhanced` (identity-lock)
+  - `lldacing/ComfyUI_PuLID_Flux_ll` (identity-lock — actively maintained Flux fork; balazik/...-Enhanced bestaat niet, sipie800/...-Enhanced is discontinued)
   - `ltdrdata/ComfyUI-Impact-Pack` (FaceDetailer)
   - `Fannovel16/comfyui_controlnet_aux` (DWPose, voor SDXL fallback)
   - `Kosinkadink/ComfyUI-Advanced-ControlNet` (timing/weighting)

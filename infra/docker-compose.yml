@@ -1,0 +1,37 @@
+name: luna
+
+services:
+  comfyui:
+    image: yanwk/comfyui-boot:cu130-slim
+    container_name: luna-comfyui
+    ports:
+      # Host 18190 → ComfyUI 8188 in container.
+      # NEVER use 8188 host-side (= lumi conflict). NEVER 18189 (lumi-swap deprecated).
+      - "18190:8188"
+    volumes:
+      # Bind-mount lumi's models folder. Luna mag toevoegen, NOOIT overschrijven van bestaande
+      # bestanden. Het download-script doet een Test-Path check voor elke download.
+      - ../../lumi/models:/root/ComfyUI/models
+      # Luna's eigen outputs (separate van lumi/outputs).
+      - ../outputs:/root/ComfyUI/output
+      # Custom nodes in een named volume. Luna start fresh — geen pre-existing data om te delen,
+      # dus declare als reguliere named volume (niet external zoals lumi). Docker maakt 'm aan.
+      - luna-comfyui-data:/root/ComfyUI/custom_nodes
+    environment:
+      # --listen 0.0.0.0          : accepteer connecties van host
+      # --enable-cors-header      : Angular dev-server (4200) mag de API aanroepen
+      # --reserve-vram 0.9        : houd 0.9 GB vrij voor system + browser (12 GB RTX 4070)
+      # --use-pytorch-cross-attention : sneller dan xformers op RTX 40-serie voor Flux
+      # --preview-method none     : scheelt VRAM (geen latent previews tijdens sampling)
+      - CLI_ARGS=--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 --use-pytorch-cross-attention --preview-method none
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  luna-comfyui-data:

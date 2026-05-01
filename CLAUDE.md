@@ -16,7 +16,8 @@ Sister project: [Lumi](../lumi/) — anime/semi-real generator. Lumi en Luna del
 - **Frontend:** Angular 21 standalone, strict TypeScript, signals, Material 21 M3 dark.
 - **AI backend:** ComfyUI (Docker, NVIDIA CUDA) op poort **18190**.
 - **Engine:** Flux.1 dev GGUF Q5_K_M (`unet/flux1-dev-Q5_K_M.gguf`, ~8.4GB) via `city96/ComfyUI-GGUF`. SDXL alleen als pose-fallback.
-- **Identity-lock:** PuLID-Flux v1.1 (`balazik/ComfyUI-PuLID-Flux-Enhanced`).
+- **Identity-lock:** PuLID-Flux v0.9.1 weight via `lldacing/ComfyUI_PuLID_Flux_ll` (active Flux fork; `balazik/ComfyUI-PuLID-Flux-Enhanced` bestaat niet, `sipie800/...-Enhanced` is discontinued).
+- **T5 encoder:** `t5xxl_fp8_e4m3fn.safetensors` (FP8 safetensors). NIET Q5_K_M GGUF — combinatie met FP8/GGUF Flux UNet OOM-t op 12GB.
 - **Skin-detail:** "Photorealistic Skin No Plastic" Flux-LoRA always-on (weight 0.4–0.6).
 - **NSFW finetune:** Jib Mix Flux v12 SRPO (primary) of Fluxed Up v10 (alt).
 - **Image-edit:** Flux.1 Kontext FP8 via NVIDIA TensorRT (RTX 40-serie).
