@@ -78,6 +78,42 @@ docker exec "${CONTAINER}" bash -c "
   fi
 "
 
+# ComfyUI 0.19.3 compat patch: lldacing's pulid_forward_orig() signature mist
+# **kwargs en crasht op het nieuwe `timestep_zero_index=` keyword dat ComfyUI's
+# core forward-call meegeeft. Geüpstreamd door ons patch-block hieronder. Zodra
+# lldacing dit upstream fixt, kan dit blok weg.
+# Idempotent: skip als **kwargs al aanwezig is in de signature.
+echo
+echo "=== ComfyUI 0.19.3 compat patch voor lldacing PulidFluxHook.py ==="
+docker exec "${CONTAINER}" python3 - <<'PYEOF'
+import re, sys
+p = '/root/ComfyUI/custom_nodes/ComfyUI_PuLID_Flux_ll/PulidFluxHook.py'
+try:
+    src = open(p).read()
+except FileNotFoundError:
+    print(f'  [skip] {p} does not exist (PuLID-Flux node not installed?)')
+    sys.exit(0)
+
+# Locate the pulid_forward_orig() signature block.
+sig_re = re.compile(
+    r'(def pulid_forward_orig\([^)]*?attn_mask: Tensor = None,)(\s*\) -> Tensor:)',
+    re.DOTALL,
+)
+m = sig_re.search(src)
+if not m:
+    # Already patched if **kwargs is present in the signature block.
+    parts = src.split('def pulid_forward_orig', 1)
+    if len(parts) == 2 and '**kwargs' in parts[1].split(') -> Tensor:', 1)[0]:
+        print('  [skip] PulidFluxHook.py already patched (**kwargs present)')
+        sys.exit(0)
+    print('  [error] pulid_forward_orig signature not found — lldacing may have refactored. Check upstream.')
+    sys.exit(1)
+
+new = src[:m.end(1)] + '\n    **kwargs,' + src[m.start(2):]
+open(p, 'w').write(new)
+print('  [patch] PulidFluxHook.py: added **kwargs to pulid_forward_orig signature')
+PYEOF
+
 # TODO: Flux Kontext TensorRT node — researcher agent moet repo bevestigen voor Fase 3.
 #       Niet clonen tot de juiste repo + node-naam vaststaat (er zijn meerdere forks in omloop).
 
