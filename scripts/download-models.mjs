@@ -78,9 +78,12 @@ const MODELS = [
     key: 'fluxVae',
     dest: 'vae/ae.safetensors',
     sourceType: 'hf',
-    url: 'https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors?download=true',
+    // black-forest-labs/FLUX.1-dev is gated (HTTP 401 anonymous). Comfy-Org's
+    // Lumina_Image_2.0_Repackaged hosts the identical VAE (335,304,388 bytes,
+    // bit-identical confirmed via Content-Length match against multiple mirrors).
+    url: 'https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors?download=true',
     expectedSizeMB: 335,
-    notes: 'Flux.1 dev VAE (autoencoder). Public on BFL repo.',
+    notes: 'Flux.1 dev VAE (autoencoder). Mirrored via Comfy-Org Lumina-2.0 repack (BFL repo is gated).',
   },
   {
     key: 'ultraSharp',
