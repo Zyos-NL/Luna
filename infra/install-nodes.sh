@@ -60,6 +60,7 @@ install_node() {
 install_node "ComfyUI-GGUF"                   "https://github.com/city96/ComfyUI-GGUF"
 install_node "ComfyUI_PuLID_Flux_ll"          "https://github.com/lldacing/ComfyUI_PuLID_Flux_ll"
 install_node "ComfyUI-Impact-Pack"            "https://github.com/ltdrdata/ComfyUI-Impact-Pack"
+install_node "ComfyUI-Impact-Subpack"         "https://github.com/ltdrdata/ComfyUI-Impact-Subpack"
 install_node "comfyui_controlnet_aux"         "https://github.com/Fannovel16/comfyui_controlnet_aux"
 install_node "ComfyUI-Advanced-ControlNet"    "https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet"
 
