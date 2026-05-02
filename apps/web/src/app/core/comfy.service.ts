@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, forkJoin, map } from 'rxjs';
+import { Observable, Subject, firstValueFrom, forkJoin, map } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface ComfyProgress {
@@ -88,12 +88,49 @@ export class ComfyService {
     });
   }
 
-  uploadImage(file: File): Observable<{ name: string; subfolder: string; type: string }> {
+  /**
+   * Upload an image to ComfyUI's `input/` directory so workflow nodes
+   * (e.g. PuLID-Flux's LoadImage) can reference it by relative path.
+   *
+   * Returns a promise so workflow-builders can `await` it inline.
+   * Response shape comes straight from ComfyUI's `/upload/image` route:
+   *   { name: stored-filename, subfolder, type: "input" }
+   *
+   * Caller composes the workflow input as
+   *   `${subfolder ? subfolder + "/" : ""}${name}`
+   * which is the exact path PuLID's LoadImage expects.
+   *
+   * @param file       File or Blob (Blob → caller must ensure mime is set
+   *                   sensibly; ComfyUI uses extension from the upload
+   *                   filename so we pass `image.png` as a default).
+   * @param subfolder  Optional subdirectory under `input/`, e.g.
+   *                   `"characters/<id>"`.
+   * @param overwrite  Replace any existing file with the same name; we
+   *                   default to `true` because identity.png re-rolls
+   *                   should clobber the previous attempt.
+   */
+  async uploadImage(
+    file: File | Blob,
+    subfolder?: string,
+    overwrite = true,
+  ): Promise<{ name: string; subfolder: string; type: string }> {
     const form = new FormData();
-    form.append('image', file);
-    return this.http.post<{ name: string; subfolder: string; type: string }>(
-      `${environment.comfyUrl}/upload/image`,
-      form
+    // ComfyUI uses the third FormData arg as the filename. Files already
+    // carry one; for raw Blobs we synthesize a sane default.
+    if (file instanceof File) {
+      form.append('image', file);
+    } else {
+      form.append('image', file, 'image.png');
+    }
+    if (subfolder) form.append('subfolder', subfolder);
+    form.append('overwrite', overwrite ? 'true' : 'false');
+    form.append('type', 'input');
+
+    return firstValueFrom(
+      this.http.post<{ name: string; subfolder: string; type: string }>(
+        `${environment.comfyUrl}/upload/image`,
+        form,
+      ),
     );
   }
 
