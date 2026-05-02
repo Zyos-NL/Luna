@@ -78,6 +78,14 @@ docker exec "${CONTAINER}" bash -c "
   fi
 "
 
+# ComfyUI-Impact-Subpack heeft deze deps nodig maar levert ze niet via een
+# requirements.txt (alleen Impact-Pack heeft die). Zonder deze packages
+# faalt UltralyticsDetectorProvider met ModuleNotFoundError.
+# Idempotent: pip skipt zelf bestaande versies.
+echo
+echo "=== Impact-Subpack runtime deps (ultralytics + dill + matplotlib) ==="
+docker exec "${CONTAINER}" pip install --no-cache-dir 'ultralytics>=8.3.162' dill matplotlib
+
 # ComfyUI 0.19.3 compat patch: lldacing's pulid_forward_orig() signature mist
 # **kwargs en crasht op het nieuwe `timestep_zero_index=` keyword dat ComfyUI's
 # core forward-call meegeeft. Geüpstreamd door ons patch-block hieronder. Zodra

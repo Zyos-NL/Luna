@@ -4,162 +4,139 @@ Dit document beschrijft de **huidige bootstrap-status** van luna en geeft de **n
 
 ## Voor de eerstvolgende Claude-sessie
 
-1. **Open een nieuwe Claude Code sessie vanuit `C:\Users\Clips\repos\luna`** — dan wordt:
-   - Memory automatisch geladen uit `C:\Users\Clips\.claude\projects\c--Users-Clips-repos-luna\memory\` (incl. fork-keuzes, quant-keuze, push-cadence, parallelism feedback)
+1. **Open een nieuwe Claude Code sessie vanuit `C:\Users\Clips\repos\luna`** — dan worden:
+   - Memory automatisch geladen uit `C:\Users\Clips\.claude\projects\c--Users-Clips-repos-luna\memory\`
    - Plan beschikbaar via `.claude/plans/luna-bootstrap.md`
    - Subagents werkend uit `.claude/agents/` (9 stuks)
-   - Auto-approve voor alle file-edits onder `C:\Users\Clips\` actief via `.claude/settings.local.json`
+   - Auto-approve voor alle file-edits + bash + powershell onder `C:\Users\Clips\` actief via `.claude/settings.local.json`
 
 2. **Zeg in de eerste prompt iets als**:
-   > "Lees HANDOFF.md, CLAUDE.md, plan. Volgende stap: handmatig in ComfyUI op 18190 de eerste character-creation workflow bouwen met Flux Q5_K_S + Jib Mix + Skin LoRA + PuLID-Flux, dan exporteer als API-JSON naar `infra/workflows/character-creation.json`."
+   > "Lees HANDOFF.md, CLAUDE.md, plan. Volgende stap is Fase 3 (Flux Kontext + TensorRT engine voor /edit route) — of een van de kleine polish-items uit de pending-lijst."
 
-## Wat er staat — bootstrap is af (✅ klaar)
+## Wat er staat — Fase 1 + Fase 2 zijn af (✅ klaar)
 
-### Repo, infra, container
-- `C:\Users\Clips\repos\luna` met git remote `https://github.com/Zyos-NL/Luna.git`
-- `infra/docker-compose.yml`: `luna-comfyui` op port 18190, bind-mount `../../lumi/models`, named-volume `luna-comfyui-data`, NVIDIA GPU passthrough, CLI args `--reserve-vram 0.9 --use-pytorch-cross-attention --preview-method none`
-- Container draait succesvol, ComfyUI 0.19.3, RTX 4070 herkent (12 GB VRAM)
-- `infra/install-nodes.sh`: idempotent, installeert 5 custom nodes + facenet-pytorch dep:
+### Container, custom nodes, models
+- `luna-comfyui` op port 18190, recreated met `--cpu-vae` flag (voorkomt VAEDecode CUDA-crash)
+- 6 custom nodes geïnstalleerd:
   - `city96/ComfyUI-GGUF` (Flux GGUF loader)
-  - `lldacing/ComfyUI_PuLID_Flux_ll` (identity-lock — actively maintained Flux fork; balazik/...-Enhanced bestaat niet, sipie800/...-Enhanced is discontinued)
+  - `lldacing/ComfyUI_PuLID_Flux_ll` (identity-lock — ComfyUI 0.19.3 patch in install-nodes.sh applied for `pulid_forward_orig` `**kwargs` signature)
   - `ltdrdata/ComfyUI-Impact-Pack` (FaceDetailer)
-  - `Fannovel16/comfyui_controlnet_aux` (DWPose)
+  - `ltdrdata/ComfyUI-Impact-Subpack` (UltralyticsDetectorProvider — split out van Impact-Pack)
+  - `Fannovel16/comfyui_controlnet_aux` (DWPose, voor SDXL fallback)
   - `Kosinkadink/ComfyUI-Advanced-ControlNet` (timing/weighting)
-  - `facenet-pytorch` via `pip install --no-deps` (lldacing dep, omzeilt torch<2.3.0 pin)
-- 8 PuLID-Flux node-classes geregistreerd in API: `ApplyPulidFlux`, `FixPulidFluxPatch`, `PulidFluxOptions`, `PulidFluxModelLoader`, `PulidFluxInsightFaceLoader`, `PulidFluxEvaClipLoader`, `PulidFluxFaceNetLoader`, `PulidFluxFaceDetector`
-- `infra/.env.example` (template) + `infra/.env` (lokaal, gitignored, met CIVITAI_TOKEN)
+  - Plus `facenet-pytorch` als pip-dep voor lldacing
+- 8 PuLID-Flux node-classes geregistreerd: `ApplyPulidFlux`, `FixPulidFluxPatch`, `PulidFluxOptions`, `PulidFluxModelLoader`, `PulidFluxInsightFaceLoader`, `PulidFluxEvaClipLoader`, `PulidFluxFaceNetLoader`, `PulidFluxFaceDetector`. (FixPulidFluxPatch wordt **niet** gebruikt in workflows — incompatibel met ComfyUI 0.19.3 zonder de runtime-patch; single-shot workflows zijn veilig zonder.)
 
-### Models — Fase 1 minimum compleet (~28 GB op disk)
-Alle 11 doelfiles aanwezig in `../lumi/models/`:
-- `unet/flux1-dev-Q5_K_S.gguf` (7.8 GB) — **Q5_K_S, niet Q5_K_M** (city96 publiceert die niet)
-- `clip/t5xxl_fp8_e4m3fn.safetensors` (4.6 GB)
-- `clip/clip_l.safetensors` (235 MB, was al in lumi)
-- `text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt` (817 MB) — let op: **text_encoders/** folder (lldacing's `folder_paths.get_full_path("text_encoders", ...)`)
-- `vae/ae.safetensors` (320 MB) — via Comfy-Org Lumina-2.0 mirror, BFL FLUX.1-dev is gated
+### Models — ~28 GB op disk in `../lumi/models/`
+Alle 11 Fase-1 doelfiles aanwezig:
+- `unet/flux1-dev-Q5_K_S.gguf` (7.8 GB) — Q5_K_S, niet Q5_K_M
+- `clip/t5xxl_fp8_e4m3fn.safetensors` (4.6 GB) — FP8, niet GGUF
+- `clip/clip_l.safetensors` (235 MB)
+- `text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt` (817 MB) — let op `text_encoders/`, niet `clip/`
+- `vae/ae.safetensors` (320 MB) — via Comfy-Org Lumina-2.0 mirror, BFL is gated
 - `pulid/pulid_flux_v0.9.1.safetensors` (1.1 GB)
 - `loras/jibMixFlux_v12.safetensors` (12 GB)
 - `loras/photorealisticSkinNoPlastic_flux.safetensors` (74 MB)
-- `sams/sam_vit_b_01ec64.pth` (358 MB, was al in lumi)
-- `ultralytics/segm/person_yolov8m-seg.pt` (53 MB, was al in lumi)
-- `upscale_models/4x-UltraSharp.pth` (64 MB, was al in lumi)
+- `sams/sam_vit_b_01ec64.pth` (358 MB)
+- `ultralytics/segm/person_yolov8m-seg.pt` (53 MB)
+- `upscale_models/4x-UltraSharp.pth` (64 MB)
+
+### ComfyUI workflow JSONs — `infra/workflows/` (4 stuks, 3 API-validated)
+- `character-creation.json` (16 nodes) — Flux + Jib Mix(0.7) + Skin(0.5) + KSampler + FaceDetailer + SaveImage. **Validated**: identity_00001_.png photoreal Mediterranean woman, candy.ai-tier.
+- `txt2img-character.json` (21 nodes) — character-creation + PuLID-Flux weight=0.8 end_at=0.7 + LoadImage(identity). **Validated**: scene_kitchen identity-preserved.
+- `scene-variation.json` (21 nodes) — PuLID weight=0.6 end_at=0.5 voor meer scene-ruimte. **Validated**: scene_park_lowweight.
+- `face-detail-only.json` (13 nodes) — standalone repair-pass met mini Flux-stack zonder Jib Mix/PuLID. JSON-syntactisch valid, niet API-tested (geen test-input image).
+
+### Frontend (Angular 21 + Material 21, dark M3) — Sofia-flow end-to-end clickable
+- 4 routes: `/characters` (default), `/generate`, `/edit` (Fase 3 placeholder), `/gallery`
+- Core services geïmplementeerd:
+  - `comfy.service.ts`: queuePrompt, waitForResult (met error-detection + execution_error extractie), uploadImage, history, WS progress
+  - `character.service.ts`: candy.ai velden, localStorage `luna.characters`, hasIdentity guard, upsertDraft
+  - `session.service.ts`: + characterId tagging op SessionImage
+  - `workflow.service.ts`: 4 builders → BuildResult ({wf, seed}). Resolved seed echo-back voor reproducible re-rolls
+  - `prompt-compose.ts`: pure helpers composeCharacterTraits / composeIdentityPrompt / composeScenePrompt
+- Templates als TS-modules (`core/workflows/*.template.ts`) — typed, deep-cloned, geen runtime fetch
+- Feature components wired:
+  - `characters/character.dialog.ts`: form + Create Identity flow + identity-portrait preview
+  - `characters/characters.ts`: grid met identity-thumbnails + dialog launch
+  - `generate/generate.ts`: character-picker + scene/outfit/pose/shot/mood form + dimensions preset (1024×1024 / 832×1216 / 768×1344) + seed input + NSFW toggle + Generate flow (output→input round-trip → uploadImage → buildCharacterWorkflow|buildSceneVariation → queue → waitForResult → SessionService.appendImage met characterId)
+  - `gallery/gallery.ts`: filter dropdown per character
+  - `edit/edit.ts`: placeholder voor Fase 3
+- NSFW toggle: default off → blokkeert "nude, undressed, naked, explicit" via negative-prompt-extra. On → no extra restriction (Jib Mix is NSFW-finetuned, user-prompt stuurt). Tooltip "Off: blokkeert nudity. On: ondeugend mag."
+- top-level `package.json` + `package-lock.json` met `ws` voor screenshot.mjs CDP-client
 
 ### Scripts (`scripts/`)
-- `download-models.mjs` (564 regels) — ESM Node 24, atomic .partial writes, --only/--list/--force flags, idempotente skip-check, always-skip lijst voor 5 shared lumi-files
-- `verify-identity.mjs` — InsightFace ArcFace cosine-similarity via `docker exec luna-comfyui`, threshold 0.65/0.50, hostToContainer() helper voor de twee bind-mounts
-- `verify-anatomy.mjs` — YOLO-pose keypoint count (yolo11n-pose, auto-download in container), 12/8 thresholds
-- `screenshot.mjs` — kopie lumi pattern, native CDP via `ws`-package (lazy-imported), poort 18190
-
-### Top-level + Angular skeleton
-- `package.json` (top-level): name "luna", type "module", npm scripts voor download/verify-identity/verify-anatomy/screenshot. ws ^8.18.0 als devDep — **niet geïnstalleerd**
-- `apps/web/` (26 files) — Angular 21.2.x + Material 21.2.7 standalone skeleton. Boilerplate gekopieerd uit lumi met luna-naming. Vier routes (`/characters` default, `/generate`, `/edit`, `/gallery`).
-  - `core/comfy.service.ts` (port via `environment.comfyUrl=18190`)
-  - `core/session.service.ts` (+ optional `characterId?: string`)
-  - `core/character.service.ts` (candy.ai velden, localStorage `luna.characters`)
-  - `core/workflow.service.ts` STUB met NEGATIVE_BASELINE constante (exact match CLAUDE.md hard rule #9), 4 builders die "not implemented" gooien
-  - Feature-stubs voor alle 4 routes (snackbars als placeholders)
-  - **`npm install` nog niet gedraaid** — user-actie wanneer eerste `ng serve` nodig
+- `download-models.mjs` — ESM Node 24, idempotent skip, --only / --list / --force flags, always-skip lijst voor 5 shared lumi-files
+- `verify-identity.mjs` — InsightFace ArcFace cosine-sim via `docker exec luna-comfyui`, threshold 0.65/0.50
+- `verify-anatomy.mjs` — YOLO-pose keypoint count (yolo11n-pose), 12/8 thresholds
+- `screenshot.mjs` — kopie lumi pattern, native CDP via `ws`, port 18190
 
 ### Memory geborgd in `~/.claude/projects/c--Users-Clips-repos-luna/memory/`
-- `feedback_tool_permissions.md` — Bash/PowerShell binnen luna-project pre-authorized
-- `feedback_git_push_cadence.md` — Niet automatisch pushen na elke commit
-- `feedback_max_parallelism.md` — Onafhankelijke tool calls altijd batchen
-- `project_lumi_swap_deprecated.md` — lumi-swap-folder kan weg
-- `project_pulid_flux_fork.md` — lldacing keuze + reasoning + node-class names
+- `feedback_tool_permissions.md` — Bash/PowerShell/Edit auto-approve
+- `feedback_git_push_cadence.md` — niet automatisch pushen na elke commit
+- `feedback_max_parallelism.md` — onafhankelijke tool calls altijd batchen
+- `project_lumi_swap_deprecated.md` — lumi-swap is weg
+- `project_pulid_flux_fork.md` — lldacing keuze + node-class names + FixPulidFluxPatch disabled note
 - `project_flux_quant_choice.md` — Q5_K_S keuze (Q5_K_M bestaat niet voor Flux dev)
-
-### Git state
-6 commits op main, **gepushed** tot `7fb8fc4` (Angular skeleton). 2 commits **lokaal** ahead:
-- `836443a` scripts: switch fluxVae mirror — BFL FLUX.1-dev is gated (401)
-- `27232b8` fix: switch Flux GGUF Q5_K_M -> Q5_K_S
-Plus de HANDOFF-update die deze sessie afsluit.
 
 ## Wat er nog moet gebeuren (⏳ pending)
 
-### 1. Workflows (`infra/workflows/`) — handmatig in ComfyUI bouwen
-Geen agent kan dit zinvol scaffolden zonder live testing — de juiste node-graph ontstaat door iteratie in de UI.
+### Klein / UX (≤30 min elk, oppakbaar wanneer er tijd is)
+- [ ] Gallery image-modal: klik thumbnail → full-size modal met meta (prompt, seed, character-naam)
+- [ ] `personalityTags` daadwerkelijk in scene-prompt injecteren — momenteel persisted in `Character` maar niet gebruikt in `composeScenePrompt`. Watch voor over-conditioning.
+- [ ] `onnxruntime-gpu` in container voor InsightFace GPU-accel (huidige fallback is CPU = +1-2s per gen). Toe te voegen via `pip install onnxruntime-gpu` + extra `install-nodes.sh` step.
+- [ ] Hand-detector pass voor body-gens via Impact-Pack `hand_yolov8s` (tweede FaceDetailer-achtige pass specifiek op handen). Verbetert hand-quality op full-body shots.
+- [ ] Gen progress bar: huidige polling via WS `progress$` toont alleen sampler-step. KSampler is ~70% van de tijd, daarna VAEDecode + FaceDetailer (+10s) — niet zichtbaar in progress.
 
-- [ ] **Open ComfyUI op `http://localhost:18190`** (start container met `docker compose -f infra/docker-compose.yml up -d` als hij gestopt is)
-- [ ] Bouw eerste **character-creation workflow**:
-  - `UnetLoaderGGUF` → `unet/flux1-dev-Q5_K_S.gguf`
-  - `DualCLIPLoader` → `t5xxl_fp8_e4m3fn.safetensors` + `clip_l.safetensors`
-  - `VAELoader` → `vae/ae.safetensors`
-  - `LoraLoader` chain: Jib Mix Flux v12 (strength 0.7) + Photorealistic Skin No Plastic (strength 0.5)
-  - `KSampler` (steps=20, cfg=3.5, sampler=euler, scheduler=simple)
-  - `VAEDecode` → `FaceDetailer` (Impact-Pack, sam_vit_b_01ec64, face_yolov8m, denoise 0.35) → `SaveImage` (`filename_prefix=characters/<id>/identity`)
-  - **Negative prompt server-side enforced** — gebruik exact de string uit `apps/web/src/app/core/workflow.service.ts NEGATIVE_BASELINE`
-  - Test met "young adult mediterranean woman, casual photo, kitchen morning light, white t-shirt"
-  - Resultaat moet photoreal zijn, geen plastic skin, scherp gezicht
-  - **Exporteer als API-format JSON** (Workflow → Save (API Format)) → opslaan als `infra/workflows/character-creation.json`
-- [ ] Bouw **txt2img-character workflow** (daily driver) door PuLID-Flux nodes toe te voegen aan character-creation:
-  - `PulidFluxModelLoader` → `pulid/pulid_flux_v0.9.1.safetensors`
-  - `PulidFluxInsightFaceLoader` → `buffalo_l` (auto-download)
-  - `PulidFluxEvaClipLoader` → `text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt`
-  - `ApplyPulidFlux` (weight=0.8, start=0.0, end=0.7, ref=identity.png)
-  - `FixPulidFluxPatch` ná de toepassing (lldacing-specifieke fix tegen model-pollution)
-  - Exporteer naar `infra/workflows/txt2img-character.json`
-- [ ] Bouw **scene-variation workflow** (kopie van txt2img-character met PuLID weight=0.6, end=0.5) → `scene-variation.json`
-- [ ] Bouw **face-detail-only workflow** (standalone FaceDetailer-pass) → `face-detail-only.json`
-- [ ] **Fase 3 (later)**: Flux Kontext FP8 + TensorRT engine voor `character-edit.json` — vereist eerst `scripts/build-tensorrt.mjs` en download van `flux-kontext/flux1-kontext-dev-fp8.safetensors`
+### Fase 3 — `/edit` route met Flux Kontext (eigen sessie, ~4-6 uur)
+Hard dep: Fase-1 + Fase-2 stable identity-output (✓ done).
 
-### 2. Frontend wire-up — workflow.service implementatie (Fase 2)
-Nu de skeleton staat en de workflow JSON-templates komen, kan `apps/web/src/app/core/workflow.service.ts` ingevuld worden:
+- [ ] Download `flux-kontext/flux1-kontext-dev-fp8.safetensors` (~12 GB, gated op BFL — mogelijk mirror nodig zoals VAE)
+- [ ] `scripts/build-tensorrt.mjs` — one-time TensorRT engine compile in container (~30 min, RTX 40-serie specifiek). Engine = `tensorrt/flux-kontext-rtx40.engine` (~8 GB)
+- [ ] ComfyUI-FluxKontext custom node clonen (researcher agent moet juiste repo bevestigen — `infra/install-nodes.sh` heeft al een TODO comment hiervoor)
+- [ ] `infra/workflows/character-edit.json` — Flux Kontext FP8 + TensorRT engine + identity.png + edit-prompt → output
+- [ ] `apps/web/src/app/features/edit/edit.ts` — kies character + bestaand image + edit-prompt UI
+- [ ] `WorkflowService.buildCharacterEdit()` implementeren (momenteel throws "Fase 3 not implemented")
 
-- [ ] `npm install` in `apps/web/` (eerste keer — installeert Angular 21 deps + ws)
-- [ ] `buildCharacterCreation(params)`: laad `infra/workflows/character-creation.json` template, vervang prompt/seed/character-id velden, return als ComfyUI prompt
-- [ ] `buildCharacterWorkflow(params)`: idem voor txt2img-character.json (+ identity.png path)
-- [ ] `buildSceneVariation(params)`: idem voor scene-variation.json
-- [ ] `buildCharacterEdit(params)`: idem voor character-edit.json (Fase 3)
-- [ ] Wire `generate.ts` `onGenerate()` → `buildCharacterWorkflow()` → `comfy.queuePrompt()` → poll history → `session.appendImage()` met characterId tagging
-- [ ] Wire `characters/character.dialog.ts` → form met candy.ai velden + `Create Identity` button die `buildCharacterCreation()` aanroept
+### Fase 4 — Cloud-LoRA training (eigen sessie, ~3-4 uur)
+Hard dep: Fase-2 + ≥30 accepted gens per character + RunPod API-key.
 
-### 3. Eerste end-to-end validatie
-- [ ] `cd apps/web && npm install && npm start` → UI op 4200
-- [ ] Maak character "Sofia" → klik **Create Identity** → portret in <60s, photoreal
-- [ ] `node scripts/verify-identity.mjs --character sofia --output <path>` → cosine ≥0.65 op de output zelf (sanity, niet groot probleem als 1.0)
-- [ ] Switch naar `/generate`, kies Sofia, prompt "kitchen morning, white t-shirt" → output in <60s, gezicht herkenbaar als Sofia (cosine ≥0.65 tegen identity.png)
+- [ ] `scripts/train-lora-cloud.mjs` — RunPod-API call (spin RTX 4090 pod, push dataset, run kohya/ai-toolkit Flux-LoRA, pull result)
+- [ ] Auto-dataset-builder UI: select ≥30 favorites uit gallery → captioner (BLIP-3 / Florence-2) → trigger training
+- [ ] `training/config/` met kohya/ai-toolkit Flux-LoRA configs
+- [ ] LoRA-merge in workflow vóór PuLID-stack: LoRA strength 0.6 + PuLID 0.45 (lower omdat LoRA totale identity pakt)
+- [ ] Kosten-estimate UI: ~$0.50–0.70 per character-LoRA, 60-90 min duration
 
-### 4. Niet-blokkerende cleanup (lage prio)
-- [ ] `.claude/settings.json` (untracked — stale `Bash(docker rm *)` permission, redundant naast settings.local.json) — verwijderen of negeren
-- [ ] `C:\Users\Clips\repos\lumi-swap` legacy folder — fysiek opruimen wanneer gewenst (`Remove-Item -Recurse -Force`)
+### Fase 5 (backlog — alleen als Fase-2 quality onvoldoende blijkt)
+- [ ] SDXL pose-controlled fallback (alleen als Flux ControlNet ecosystem te beperkt blijkt voor specifieke poses)
+- [ ] ReActor face-swap post-pass (alleen als PuLID-Flux identity-fail-rate >10%)
+- [ ] Fluxed Up v10 als alt checkpoint (Civitai 847101)
 
-## Aanbevolen werkvolgorde voor de volgende sessie
-
-**Sessie 2 (2-3 uur) — Workflow JSON's bouwen:**
-1. Lees HANDOFF.md, CLAUDE.md, plan
-2. Start container: `docker compose -f infra/docker-compose.yml up -d` (lumi-comfyui moet down zijn — `docker stop lumi-comfyui` als nodig)
-3. Open `http://localhost:18190`
-4. Bouw character-creation handmatig, test, exporteer → `infra/workflows/character-creation.json`
-5. Spawn `character-pipeline` agent: review/refine de exported JSON, voeg meta-comments toe (welke node doet wat)
-6. Bouw txt2img-character (PuLID erbij) → exporteer → `txt2img-character.json`
-7. Idem scene-variation + face-detail-only
-
-**Sessie 3 (3-4 uur) — Frontend wire-up:**
-8. `npm install` in apps/web
-9. Spawn `frontend` agent: vul `workflow.service.ts` in (4 builders), wire `generate.ts` + `character.dialog.ts`
-10. End-to-end Sofia-flow test
-11. Spawn `qa` agent: run `verify-identity.mjs` en `verify-anatomy.mjs` op output
-
-**Sessie 4+:** Fase 3 (Flux Kontext + TensorRT engine + edit-route), Fase 4 (cloud-LoRA via RunPod).
+### Niet-blokkerende cleanup (lage prio)
+- [ ] `.claude/settings.json` (untracked, stale `Bash(docker rm *)` permission — redundant naast settings.local.json) → verwijderen of negeren
+- [ ] `C:\Users\Clips\repos\lumi-swap` legacy folder — fysiek opruimen (`Remove-Item -Recurse -Force`)
 
 ## Belangrijke pointers (cheat sheet)
 
-- **ComfyUI port: 18190.** Lumi = 18188. Niet 18189 (lumi-swap bestaat niet meer).
+- **ComfyUI port: 18190.** Lumi = 18188.
+- **GPU-mutex:** lumi en luna kunnen niet tegelijk draaien (12GB VRAM).
 - **Models bind-mount uit `../lumi/models/`** — luna mag toevoegen, **nooit** overschrijven.
-- **Engine: Flux.1 dev GGUF Q5_K_S** via `city96/ComfyUI-GGUF`. **Q5_K_M bestaat niet voor Flux dev** in die repo.
-- **Identity: PuLID-Flux v0.9.1 via `lldacing/ComfyUI_PuLID_Flux_ll`** (lldacing fork — balazik-Enhanced bestaat niet, sipie800-Enhanced is discontinued, cubiq is SDXL-only).
-- **Skin-LoRA always-on** op weight 0.4–0.6 (kwaliteitsfloor, niet user-disableable).
+- **Engine: Flux.1 dev GGUF Q5_K_S** via `city96/ComfyUI-GGUF`. Q5_K_M bestaat niet voor Flux dev in die repo.
+- **Identity: PuLID-Flux v0.9.1 via `lldacing/ComfyUI_PuLID_Flux_ll`** + container-runtime patch op `pulid_forward_orig` (in install-nodes.sh).
+- **VAE op CPU** (`--cpu-vae`) op 12GB om VAEDecode `cudaErrorInvalidValue` te voorkomen na KSampler model-unload.
+- **Skin-LoRA always-on** op weight 0.4–0.6 (kwaliteitsfloor).
 - **T5 encoder: `t5xxl_fp8_e4m3fn.safetensors`** — NIET T5 Q5_K_M GGUF (OOM op 12GB i.c.m. FP8/GGUF Flux UNet).
 - **VAE bron**: `Comfy-Org/Lumina_Image_2.0_Repackaged` mirror (BFL FLUX.1-dev is gated).
 - **Character-LoRA training: cloud RunPod** (~$0.70/run). Lokale Flux-LoRA training niet doen.
-- **GPU-mutex**: lumi en luna kunnen niet tegelijk draaien (12GB VRAM). Stop lumi voor je luna start.
-- **VRAM-budget**: peak ~10.5–11.5GB. batch_size=1 verplicht.
+- **VRAM peak ~10.5–11.5GB.** batch_size=1 verplicht.
 - **Identity-cosine threshold: ≥0.65** (PuLID levert hoger dan SDXL+IPAdapter).
-- **NSFW ongecensureerd** — geen prompt-rewriting, geen safety-filters.
-- **Negative-prompt baseline server-side enforced** in `workflow.service.ts NEGATIVE_BASELINE` — user mag toevoegen, niet weghalen.
+- **NSFW ongecensureerd** — toggle off blokkeert nudity via negative-prompt-extra; on doet niks.
+- **Negative-prompt baseline server-side enforced** in `workflow.service.ts NEGATIVE_BASELINE`.
 
 ## Hardware-realiteit
 
-- RTX 4070, 12GB VRAM, i7-13700K, 32GB RAM, ~410GB+ vrij disk (na Fase-1 download)
+- RTX 4070, 12GB VRAM, i7-13700K, 32GB RAM, ~410GB+ vrij disk
 - CUDA 13.2, Docker met NVIDIA runtime, Node 24, Python 3.12 (host) / 3.13.13 (container)
-- Speed: ~52s per 1024px Flux-gen (geschat, eerste Sofia-gen valideert dit)
-- Tier-2 (candy.ai-equivalent) haalbaar; Tier-3 (Flux BF16, InfiniteYou, 24GB+) buiten scope
+- Speed: Flux Q5_K_S + PuLID + FaceDetailer = ~60-90s eerste run (model-load), ~52-60s subsequent
+- VAE op CPU: +3-5s per gen, in ruil voor stabiliteit
+- Tier-2 (candy.ai-equivalent) bewezen haalbaar; Tier-3 (Flux BF16, InfiniteYou, 24GB+) buiten scope
