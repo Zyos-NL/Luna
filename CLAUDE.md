@@ -20,7 +20,7 @@ Sister project: [Lumi](../lumi/) — anime/semi-real generator. Lumi en Luna del
 - **T5 encoder:** `t5xxl_fp8_e4m3fn.safetensors` (FP8 safetensors). NIET Q5_K_M GGUF — combinatie met FP8/GGUF Flux UNet OOM-t op 12GB.
 - **Skin-detail:** "Photorealistic Skin No Plastic" Flux-LoRA always-on (weight 0.4–0.6).
 - **NSFW finetune:** Jib Mix Flux v12 SRPO (primary) of Fluxed Up v10 (alt).
-- **Image-edit:** Flux.1 Kontext FP8 via NVIDIA TensorRT (RTX 40-serie).
+- **Image-edit:** Flux.1 Kontext dev GGUF Q5_K_S via `city96/ComfyUI-GGUF` loader, mirror `QuantStack/FLUX.1-Kontext-dev-GGUF`. NIET TensorRT (LoRA-incompat dealbreaker — Skin-LoRA always-on per rule #14). Native Flux Kontext nodes (`FluxKontextImageScale`, `ReferenceLatent`) zitten in ComfyUI core sinds v0.3.40.
 - **Character-LoRA:** cloud (RunPod RTX 4090, ~$0.50–0.70/run, 60–90 min). Geen lokale Flux-LoRA training.
 - **Models:** bind-mount `../lumi/models/`. Geen duplicate models-folder.
 - **Communication:** Angular → ComfyUI via WebSocket + HTTP. Geen ASP.NET / Node backend.

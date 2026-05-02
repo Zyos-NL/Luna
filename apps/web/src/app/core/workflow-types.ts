@@ -75,3 +75,23 @@ export interface CharacterEditParams {
   sourceImageFilename: string;
   editPrompt: string;
 }
+
+/** Params for `WorkflowService.buildCharacterEdit()` (Flux Kontext edit).
+ *  No width/height — Kontext determines dimensions itself via
+ *  `FluxKontextImageScale` from the input image. */
+export interface BuildCharacterEditParams {
+  characterId: string;
+  /** Path RELATIVE to ComfyUI input/, e.g.
+   *  `"characters/<id>/scene_kitchen.png"`. Upload via
+   *  `ComfyService.uploadImage()` first to obtain it. */
+  sourceImageInComfyInput: string;
+  /** User edit instruction in natural language, e.g.
+   *  `"change outfit to red dress"`. Flux Kontext interprets this as an
+   *  edit relative to the source image. */
+  editPrompt: string;
+  /** Optional user-extra negative — appended AFTER NEGATIVE_BASELINE.
+   *  Server-side baseline is enforced (CLAUDE.md hard rule #9). */
+  negativeExtra?: string;
+  /** uint32; randomised when omitted. */
+  seed?: number;
+}

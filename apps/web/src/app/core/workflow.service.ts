@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { CHARACTER_CREATION_TEMPLATE } from './workflows/character-creation.template';
 import { TXT2IMG_CHARACTER_TEMPLATE } from './workflows/txt2img-character.template';
 import { SCENE_VARIATION_TEMPLATE } from './workflows/scene-variation.template';
+import { CHARACTER_EDIT_TEMPLATE } from './workflows/character-edit.template';
 import type {
+  BuildCharacterEditParams,
   BuildCharacterParams,
   BuildResult,
   BuiltWorkflow,
@@ -14,6 +16,7 @@ import type {
 } from './workflow-types';
 
 export type {
+  BuildCharacterEditParams,
   BuildCharacterParams,
   BuildResult,
   BuiltWorkflow,
@@ -101,10 +104,24 @@ export class WorkflowService {
     return { wf, seed };
   }
 
-  async buildCharacterEdit(_params: CharacterEditParams): Promise<BuildResult> {
-    throw new Error(
-      'buildCharacterEdit: Fase 3 — Flux Kontext + TensorRT nog niet geïmplementeerd'
-    );
+  async buildCharacterEdit(params: BuildCharacterEditParams): Promise<BuildResult> {
+    // Flux Kontext edit: source-image goes through LoadImage ->
+    // FluxKontextImageScale -> VAEEncode -> ReferenceLatent. Kontext
+    // determines its own dimensions via FluxKontextImageScale, so we
+    // skip setLatentDimensions here.
+    const wf = this.cloneTemplate(CHARACTER_EDIT_TEMPLATE);
+    const seed = params.seed ?? this.randomSeed();
+
+    this.setPositive(wf, params.editPrompt);
+    this.setNegative(wf, this.composeNegative(params.negativeExtra));
+    this.setAllSeeds(wf, seed);
+    // Source image for Kontext is loaded via the same unique LoadImage
+    // node pattern as the identity image in PuLID workflows; reuse the
+    // setter for consistency.
+    this.setSourceImage(wf, params.sourceImageInComfyInput);
+    this.setSavePrefix(wf, `characters/${params.characterId}/edit`);
+
+    return { wf, seed };
   }
 
   // -------- Server-side enforced negative ---------------------------------
@@ -164,6 +181,15 @@ export class WorkflowService {
     wf[id].inputs['image'] = imagePath;
   }
 
+  /** Kontext edit workflows have exactly one LoadImage feeding the
+   *  FluxKontextImageScale -> VAEEncode -> ReferenceLatent chain. Same
+   *  unique-LoadImage finder as setIdentityImage, separate name purely
+   *  for readability at the call-site. */
+  private setSourceImage(wf: BuiltWorkflow, imagePath: string): void {
+    const id = this.findNodeIdByClass(wf, 'LoadImage');
+    wf[id].inputs['image'] = imagePath;
+  }
+
   private setSavePrefix(wf: BuiltWorkflow, prefix: string): void {
     const id = this.findNodeIdByClass(wf, 'SaveImage');
     wf[id].inputs['filename_prefix'] = prefix;
@@ -200,13 +226,25 @@ export class WorkflowService {
     return matches[0][0];
   }
 
-  /** Trace KSampler.positive -> FluxGuidance(positive) -> CLIPTextEncode.
-   *  Returning the CLIPTextEncode node-id so we can mutate `text` without
-   *  hardcoding "node 6". */
+  /** Trace KSampler.positive -> [ReferenceLatent ->] FluxGuidance ->
+   *  CLIPTextEncode. The optional ReferenceLatent hop is present in
+   *  Flux Kontext edit workflows where the positive conditioning is
+   *  enriched with the source-image latent before reaching KSampler.
+   *  Returning the CLIPTextEncode node-id so we can mutate `text`
+   *  without hardcoding "node 6". */
   private findPositiveTextNodeId(wf: BuiltWorkflow): string {
     const ksamplerId = this.findNodeIdByClass(wf, 'KSampler');
     const positiveWire = this.expectWire(wf[ksamplerId].inputs['positive'], `KSampler.positive`);
-    return this.expectClipTextEncodeBehindFluxGuidance(wf, positiveWire[0]);
+    let cursor = positiveWire[0];
+    const cursorNode = wf[cursor];
+    if (cursorNode?.class_type === 'ReferenceLatent') {
+      const condWire = this.expectWire(
+        cursorNode.inputs['conditioning'],
+        `ReferenceLatent.conditioning`,
+      );
+      cursor = condWire[0];
+    }
+    return this.expectClipTextEncodeBehindFluxGuidance(wf, cursor);
   }
 
   /** Trace KSampler.negative -> FluxGuidance(negative) -> CLIPTextEncode. */

@@ -167,6 +167,18 @@ const MODELS = [
     expectedSizeMB: 7900,
     notes: 'Flux.1 dev quantized to Q5_K_S (~7.9 GB). Default Luna engine.',
   },
+  {
+    key: 'fluxKontextQ5',
+    dest: 'unet/flux1-kontext-dev-Q5_K_S.gguf',
+    sourceType: 'hf',
+    // Fase 3 — Image-edit engine. QuantStack mirror van BFL FLUX.1-Kontext-dev.
+    // BFL repo zelf is gated; QuantStack publiceert publieke GGUF-quants.
+    // Q5_K_S kiest dezelfde quant-tier als de Flux dev base — past op 12 GB
+    // naast T5/CLIP/VAE/Skin-LoRA. Geen TensorRT (LoRA-incompat dealbreaker).
+    url: 'https://huggingface.co/QuantStack/FLUX.1-Kontext-dev-GGUF/resolve/main/flux1-kontext-dev-Q5_K_S.gguf?download=true',
+    expectedSizeMB: 7900,
+    notes: 'Flux.1 Kontext dev quantized to Q5_K_S (~8.3 GB). Fase 3 image-edit engine.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
