@@ -24,6 +24,18 @@ export interface GeneratedImage {
   timestamp: number;
 }
 
+/** Shape of a single entry in ComfyUI's `/history/<promptId>` response.
+ *  ComfyUI keys the top-level response by promptId; this is the inner value. */
+export interface HistoryEntry {
+  prompt: unknown;
+  outputs: Record<string, { images?: ComfyImageOutput[] }>;
+  status: {
+    status_str: 'success' | 'error' | string;
+    completed: boolean;
+    messages?: unknown[];
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class ComfyService {
   private http = inject(HttpClient);
@@ -140,6 +152,41 @@ export class ComfyService {
 
   getHistory(promptId: string): Observable<Record<string, unknown>> {
     return this.http.get<Record<string, unknown>>(`${environment.comfyUrl}/history/${promptId}`);
+  }
+
+  /**
+   * Polls `/history/<promptId>` until the prompt completes (or errors out).
+   *
+   * Why polling? ComfyUI's WebSocket `executed` event fires per-output-node,
+   * which is fine for live progress but doesn't include the final
+   * `status_str`. The history endpoint is the canonical source-of-truth for
+   * "did this prompt actually succeed and what files did it write?"
+   *
+   * @param promptId    Returned from `queuePrompt(...)`.
+   * @param timeoutMs   Default 5 min — Flux Q5_K_S on RTX 4070 is ~52s for
+   *                    1024px, FaceDetailer adds ~30-60s, so a 5-min ceiling
+   *                    leaves headroom for queue waits without hanging
+   *                    indefinitely.
+   * @param intervalMs  Default 1s — friendly to ComfyUI's HTTP server.
+   */
+  async waitForResult(
+    promptId: string,
+    timeoutMs = 5 * 60 * 1000,
+    intervalMs = 1000,
+  ): Promise<HistoryEntry> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const raw = await firstValueFrom(this.getHistory(promptId));
+      const entry = raw[promptId] as HistoryEntry | undefined;
+      if (entry?.status?.completed) {
+        if (entry.status.status_str === 'error') {
+          throw new Error(`ComfyUI prompt ${promptId} failed (status=error)`);
+        }
+        return entry;
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+    throw new Error(`ComfyUI prompt ${promptId} timed out after ${timeoutMs}ms`);
   }
 
   getCheckpoints(): Observable<string[]> {

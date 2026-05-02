@@ -94,6 +94,31 @@ export class CharacterService {
     this.update(id, { identityFilename: filename });
   }
 
+  /** Insert-or-update by id. Used by the character-builder dialog so
+   *  identity-portrait re-rolls hit a stable id without creating duplicate
+   *  rows in the localStorage list. Differs from `create()` (which always
+   *  generates a fresh uuid) and `update()` (which silently no-ops on miss). */
+  upsertDraft(c: Character): Character {
+    const existing = this.get(c.id);
+    const now = new Date().toISOString();
+    if (existing) {
+      const merged: Character = { ...existing, ...c, updatedAt: now };
+      this._characters.update(cs => cs.map(x => x.id === c.id ? merged : x));
+      this.persist();
+      return merged;
+    }
+    const created: Character = {
+      photoHistory: [],
+      personalityTags: [],
+      ...c,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this._characters.update(cs => [...cs, created]);
+    this.persist();
+    return created;
+  }
+
   appendPhoto(id: string, filename: string): void {
     const c = this.get(id);
     if (!c) return;

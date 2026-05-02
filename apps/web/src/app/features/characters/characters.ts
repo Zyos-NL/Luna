@@ -3,15 +3,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CharacterService, Character } from '../../core/character.service';
+import { ComfyService } from '../../core/comfy.service';
+import { CharacterDialogComponent } from './character.dialog';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-characters',
   standalone: true,
   imports: [
     MatButtonModule, MatIconModule, MatCardModule,
-    MatTooltipModule, MatSnackBarModule,
+    MatTooltipModule, MatDialogModule, MatSnackBarModule,
   ],
   template: `
     <div class="characters-wrapper">
@@ -39,12 +43,16 @@ import { CharacterService, Character } from '../../core/character.service';
           @for (c of chars.list(); track c.id) {
             <mat-card class="character-card">
               <div class="card-avatar">
-                <div class="avatar-placeholder">
-                  <mat-icon>person</mat-icon>
-                </div>
                 @if (c.identityFilename) {
+                  <img class="avatar-img"
+                    [src]="identityUrl(c)"
+                    [alt]="c.name + ' identity portrait'" />
                   <div class="identity-badge" matTooltip="Identity portrait pinned — PuLID-Flux ready">
                     <mat-icon>verified</mat-icon>
+                  </div>
+                } @else {
+                  <div class="avatar-placeholder">
+                    <mat-icon>person</mat-icon>
                   </div>
                 }
               </div>
@@ -119,6 +127,12 @@ import { CharacterService, Character } from '../../core/character.service';
       color: #555;
       mat-icon { font-size: 64px; width: 64px; height: 64px; }
     }
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
     .identity-badge {
       position: absolute;
       top: 8px;
@@ -179,17 +193,48 @@ import { CharacterService, Character } from '../../core/character.service';
 })
 export class CharactersComponent {
   protected chars = inject(CharacterService);
+  private dialog = inject(MatDialog);
+  private comfy = inject(ComfyService);
   private snackBar = inject(MatSnackBar);
 
   openNewCharacter(): void {
-    this.snackBar.open('Character builder dialog — coming in Fase 2', undefined, { duration: 2500 });
+    this.dialog.open<CharacterDialogComponent, Character | null, Character | undefined>(
+      CharacterDialogComponent,
+      {
+        width: '880px',
+        maxWidth: '95vw',
+        maxHeight: '95vh',
+        data: null,
+        autoFocus: 'first-tabbable',
+      },
+    );
   }
 
-  onEdit(_c: Character): void {
-    this.snackBar.open('Edit character — coming in Fase 2', undefined, { duration: 2500 });
+  onEdit(c: Character): void {
+    this.dialog.open<CharacterDialogComponent, Character, Character | undefined>(
+      CharacterDialogComponent,
+      {
+        width: '880px',
+        maxWidth: '95vw',
+        maxHeight: '95vh',
+        data: c,
+        autoFocus: 'first-tabbable',
+      },
+    );
   }
 
   onDelete(c: Character): void {
-    this.chars.delete(c.id);
+    if (confirm(`Delete character "${c.name}"? This removes the local entry, the identity portrait file in outputs/ stays.`)) {
+      this.chars.delete(c.id);
+      this.snackBar.open(`Deleted ${c.name}`, undefined, { duration: 2000 });
+    }
+  }
+
+  /** Builds the ComfyUI /view URL for a character's identity portrait.
+   *  Mirrors the SaveImage filename_prefix (`characters/<id>/identity_*.png`)
+   *  set by WorkflowService when we ran character-creation. */
+  identityUrl(c: Character): string {
+    if (!c.identityFilename) return '';
+    return `${environment.comfyUrl}/view?filename=${encodeURIComponent(c.identityFilename)}&subfolder=${encodeURIComponent('characters/' + c.id)}&type=output`;
   }
 }
