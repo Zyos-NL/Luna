@@ -399,7 +399,7 @@ export class CharacterDialogComponent {
       this.persistDraft();
 
       const prompt = composeIdentityPrompt(this.snapshotCharacter());
-      const wf = await this.workflow.buildCharacterCreation({
+      const { wf } = await this.workflow.buildCharacterCreation({
         characterId: this.characterId,
         positivePrompt: prompt,
       });

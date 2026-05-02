@@ -137,7 +137,9 @@ const SIZE_PRESETS: SizePreset[] = [
 
             <div class="toggle-cell">
               <mat-slide-toggle [ngModel]="nsfw()" (ngModelChange)="nsfw.set($event)"
-                                [disabled]="!hasIdentity()">
+                                [disabled]="!hasIdentity()"
+                                matTooltip="Off: blokkeert nudity. On: ondeugend mag."
+                                matTooltipPosition="above">
                 NSFW
               </mat-slide-toggle>
             </div>
@@ -368,19 +370,28 @@ export class GenerateComponent {
       // seed all flow through the builder.
       const size = this.sizePreset();
       const seed = this.seedInput();
+      // NSFW toggle off: block nudity via negative-prompt-extra (server-side
+      // baseline always prepended via composeNegative). Toggle on: no extra
+      // restriction — Jib Mix Flux v12 SRPO is NSFW-finetuned, user steers via
+      // positive prompt. Hard rule #8 (NSFW ongecensureerd) means we never
+      // block; we only let users opt INTO modesty.
+      // Termen blokkeren echte nudity maar laten swimwear/lingerie staan.
+      const negativeExtra = this.nsfw() ? undefined : 'nude, undressed, naked, explicit';
       const buildParams = {
         characterId: character.id,
         identityFilenameInComfyInput: identityPathInInput,
         positivePrompt,
+        negativeExtra,
         width: size.width,
         height: size.height,
         seed: seed ?? undefined,
       };
 
       this.statusText.set('Building workflow…');
-      const wf = this.mode() === 'standard'
+      const built = this.mode() === 'standard'
         ? await this.workflow.buildCharacterWorkflow(buildParams)
         : await this.workflow.buildSceneVariation(buildParams);
+      const { wf, seed: resolvedSeed } = built;
 
       // STEP 4 — queue + wait.
       this.statusText.set('Queueing prompt to ComfyUI…');
@@ -405,9 +416,10 @@ export class GenerateComponent {
         url,
         prompt: positivePrompt,
         negativePrompt: this.workflow.composeNegative(),
-        // Reseed-blank workflows: actual seed is randomized in WorkflowService;
-        // we store what the user requested (or 0 sentinel for "random").
-        seed: seed ?? 0,
+        // Resolved seed echo-back: builder returns the actual seed used
+        // (random uint32 when user left the field blank), so re-rolls are
+        // reproducible by typing this number back into the seed field.
+        seed: resolvedSeed,
         timestamp: Date.now(),
       };
       this.session.addImage({ ...generated, characterId: character.id });

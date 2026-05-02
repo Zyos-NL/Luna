@@ -23,6 +23,14 @@ export interface ComfyNode {
 /** A complete ComfyUI prompt-graph, ready for `comfy.queuePrompt()`. */
 export type BuiltWorkflow = Record<string, ComfyNode>;
 
+/** Result of a builder call: the workflow plus the resolved seed.
+ *  When `params.seed` is omitted the builder generates a random uint32;
+ *  callers persist `seed` on the SessionImage so re-rolls are reproducible. */
+export interface BuildResult {
+  wf: BuiltWorkflow;
+  seed: number;
+}
+
 /** Wire reference: `[sourceNodeId, outputIndex]`. */
 export type WireRef = readonly [string, number];
 

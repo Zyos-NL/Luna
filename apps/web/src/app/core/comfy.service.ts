@@ -178,15 +178,35 @@ export class ComfyService {
     while (Date.now() < deadline) {
       const raw = await firstValueFrom(this.getHistory(promptId));
       const entry = raw[promptId] as HistoryEntry | undefined;
-      if (entry?.status?.completed) {
+      if (entry?.status) {
+        // ComfyUI marks errored prompts as status_str='error' BEFORE
+        // setting completed=true. Bail early so the UI doesn't hang for
+        // 5 minutes waiting on a failed prompt.
         if (entry.status.status_str === 'error') {
-          throw new Error(`ComfyUI prompt ${promptId} failed (status=error)`);
+          const errMsg = this.extractExecutionError(entry) ?? 'unknown error';
+          throw new Error(`ComfyUI prompt ${promptId} failed: ${errMsg}`);
         }
-        return entry;
+        if (entry.status.completed) {
+          return entry;
+        }
       }
       await new Promise(resolve => setTimeout(resolve, intervalMs));
     }
     throw new Error(`ComfyUI prompt ${promptId} timed out after ${timeoutMs}ms`);
+  }
+
+  private extractExecutionError(entry: HistoryEntry): string | null {
+    const messages = entry.status?.messages ?? [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (Array.isArray(msg) && msg[0] === 'execution_error') {
+        const err = msg[1] as { node_type?: string; exception_message?: string };
+        const nodeType = err?.node_type ?? 'unknown node';
+        const exMsg = (err?.exception_message ?? '').split('\n')[0];
+        return `${nodeType}: ${exMsg}`;
+      }
+    }
+    return null;
   }
 
   getCheckpoints(): Observable<string[]> {

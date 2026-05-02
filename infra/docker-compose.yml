@@ -23,7 +23,9 @@ services:
       # --reserve-vram 0.9        : houd 0.9 GB vrij voor system + browser (12 GB RTX 4070)
       # --use-pytorch-cross-attention : sneller dan xformers op RTX 40-serie voor Flux
       # --preview-method none     : scheelt VRAM (geen latent previews tijdens sampling)
-      - CLI_ARGS=--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 --use-pytorch-cross-attention --preview-method none
+      # --cpu-vae                 : VAE op CPU — voorkomt cudaErrorInvalidValue bij UNet→CPU
+      #                              swap na KSampler op 12 GB. ~3-5s extra per gen, betrouwbaarder.
+      - CLI_ARGS=--listen 0.0.0.0 --enable-cors-header --reserve-vram 0.9 --use-pytorch-cross-attention --preview-method none --cpu-vae
     deploy:
       resources:
         reservations:

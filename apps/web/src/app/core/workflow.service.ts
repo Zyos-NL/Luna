@@ -4,6 +4,7 @@ import { TXT2IMG_CHARACTER_TEMPLATE } from './workflows/txt2img-character.templa
 import { SCENE_VARIATION_TEMPLATE } from './workflows/scene-variation.template';
 import type {
   BuildCharacterParams,
+  BuildResult,
   BuiltWorkflow,
   CharacterCreationParams,
   CharacterEditParams,
@@ -14,6 +15,7 @@ import type {
 
 export type {
   BuildCharacterParams,
+  BuildResult,
   BuiltWorkflow,
   CharacterCreationParams,
   CharacterEditParams,
@@ -55,7 +57,7 @@ export class WorkflowService {
 
   // -------- Builders -------------------------------------------------------
 
-  async buildCharacterCreation(params: CharacterCreationParams): Promise<BuiltWorkflow> {
+  async buildCharacterCreation(params: CharacterCreationParams): Promise<BuildResult> {
     const wf = this.cloneTemplate(CHARACTER_CREATION_TEMPLATE);
     const seed = params.seed ?? this.randomSeed();
 
@@ -65,10 +67,10 @@ export class WorkflowService {
     this.setAllSeeds(wf, seed);
     this.setSavePrefix(wf, `characters/${params.characterId}/identity`);
 
-    return wf;
+    return { wf, seed };
   }
 
-  async buildCharacterWorkflow(params: BuildCharacterParams): Promise<BuiltWorkflow> {
+  async buildCharacterWorkflow(params: BuildCharacterParams): Promise<BuildResult> {
     const wf = this.cloneTemplate(TXT2IMG_CHARACTER_TEMPLATE);
     const seed = params.seed ?? this.randomSeed();
 
@@ -79,10 +81,10 @@ export class WorkflowService {
     this.setIdentityImage(wf, params.identityFilenameInComfyInput);
     this.setSavePrefix(wf, `characters/${params.characterId}/scene`);
 
-    return wf;
+    return { wf, seed };
   }
 
-  async buildSceneVariation(params: SceneVariationParams): Promise<BuiltWorkflow> {
+  async buildSceneVariation(params: SceneVariationParams): Promise<BuildResult> {
     // Same shape as buildCharacterWorkflow; the SCENE_VARIATION template
     // has PuLID weight=0.6 / end_at=0.5 baked in (vs. 0.8/0.7 for daily
     // driver), so we don't touch the ApplyPulidFlux node here.
@@ -96,10 +98,10 @@ export class WorkflowService {
     this.setIdentityImage(wf, params.identityFilenameInComfyInput);
     this.setSavePrefix(wf, `characters/${params.characterId}/variation`);
 
-    return wf;
+    return { wf, seed };
   }
 
-  async buildCharacterEdit(_params: CharacterEditParams): Promise<BuiltWorkflow> {
+  async buildCharacterEdit(_params: CharacterEditParams): Promise<BuildResult> {
     throw new Error(
       'buildCharacterEdit: Fase 3 — Flux Kontext + TensorRT nog niet geïmplementeerd'
     );
